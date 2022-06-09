@@ -1,0 +1,13 @@
+{
+  "name": "good-enough-golfers",
+  "version": "1.0.0",
+  "description": "The 'good enough' Social Golfer Problem Solver",
+  "author": "Brad Buchanan <bradley.c.buchanan@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^0.11.1"
+  },
+  "scripts": {
+    "start": "http-server ."
+  }
+}
