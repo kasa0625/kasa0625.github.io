@@ -6,6 +6,7 @@
 let controlsDiv, resultsDiv
 let controls = {}
 const isDebug = true; //Turn console messages to console on or off.
+if (isDebug){console.log("Verbose Debugging is ON.");}
 // Also references for the help text
 let helpDivs, showHelpLink, hideHelpLink
 
@@ -81,7 +82,7 @@ function init() {
       var remSpots = parseInt(maxNumPlayers.innerHTML) - parseInt(document.getElementById('numOfPlayers').innerHTML);
       playerComp(remSpots);
     if (isDebug){
-          console.log(count);
+          console.log("Player List Count: " + count);
     }
   })
 
@@ -372,7 +373,12 @@ function renderResults() {
   resultsDiv.innerHTML = ''
   if (lastResults) {
     lastResults.rounds.forEach((round, roundIndex) => {
-      console.log(lastResults.roundScores);
+      if (isDebug){
+        if (oldResults != lastResults.roundScores){
+        console.log("Render Results (Round " + roundIndex + " Scores): " + lastResults.roundScores);
+        oldResults = lastResults.roundScores;
+        }
+      }
       const roundDiv = document.createElement('div')
       roundDiv.classList.add('round')
   

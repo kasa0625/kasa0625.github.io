@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Commander League Scheduler</title>
-    <link rel="stylesheet" href="index.css"/>
+    <link rel="stylesheet" href="index.css" />
     <script src="https://cdn.jsdelivr.net/npm/immutable@3.8.2/dist/immutable.min.js"></script>
     <script src="index.js" type="text/javascript"></script>
 </head>
+
 <body>
     <div id="controls">
         <h1>Commander League Scheduler</h1>
@@ -23,29 +25,32 @@
         <table>
             <tr>
                 <th>Number of groups</th>
-                <td class="sliderLabel" id="groupsLabel"}>0</td>
+                <td class="sliderLabel" id="groupsLabel" }>0</td>
                 <td>
-                    <input id="groupsSlider" type="range" min="1" max="30" step="1" value="5"/>
+                    <input id="groupsSlider" type="range" min="1" max="30" step="1" value="8" />
                 </td>
             </tr>
             <tr>
                 <th>People per group</th>
-                <td class="sliderLabel" id="ofSizeLabel"}>0</td>
+                <td class="sliderLabel" id="ofSizeLabel" }>0</td>
                 <td>
-                    <input id="ofSizeSlider" type="range" min="2" max="15" step="1" value="4"/>
+                    <input id="ofSizeSlider" type="range" min="2" max="15" step="1" value="4" />
                 </td>
             </tr>
             <tr>
                 <th>Number of rounds</th>
-                <td class="sliderLabel" id="forRoundsLabel"}>0</td>
+                <td class="sliderLabel" id="forRoundsLabel" }>0</td>
                 <td>
-                    <input id="forRoundsSlider" type="range" min="1" max="20" step="1" value="5"/>
+                    <input id="forRoundsSlider" type="range" min="1" max="20" step="1" value="10" />
                 </td>
             </tr>
         </table>
         <div>
             <div>
-                <strong>Player Names</strong> <span id="playerCountComparison" style="color:blue;font-style: italic; font-size: 75%;">(<span id="numOfPlayers">X</span> of <span id="maxOfPlayers">Y</span>) <span id="errTooManyPlayers" style="color:red;font-style:bold;display:hidden;">Too Many Players!</span></span>
+                <strong>Player Names</strong> <span id="playerCountComparison"
+                    style="color:blue;font-style: italic; font-size: 75%;">(<span id="numOfPlayers">X</span> of <span
+                        id="maxOfPlayers">Y</span>) <span id="errTooManyPlayers"
+                        style="color:red;font-style:bold;display:hidden;">Too Many Players!</span></span>
             </div>
             <div class="help-text">
                 Player names can be provided for convenience.
@@ -66,26 +71,38 @@
             </div>
             <div>
                 <textarea id="playerNames" rows="21">
-Alleson
-Brad
+Aaron
+Adam
+Aiden
+Alec
+Andrew
+Bob
+Brandon
 Charlie
-Danielle
-Fredric
-George
-Harriet
-Ivan
-Jenny
-Karen
-Laura
-Mona
-Nathan
-Olive
-Penelope
-Rachel
-Stan
-Tom
-[Empty]
-[Empty]
+Daniel G
+Daniel K
+Domingo
+Giovanni
+James
+Jesse
+Jon
+Justin
+Keith
+Kelly
+Kenneth
+Mervin
+Mike M
+Mike O
+Olivier
+Perry
+Ryan
+Sean
+Steve
+Terance
+Thomas
+Xavier
+[EMPTY]
+[EMPTY]
 </textarea>
             </div>
         </div>
@@ -101,8 +118,7 @@ Tom
             </div>
             <div>
                 <textarea id="forbiddenPairs" rows="6">
-Brad, Danielle
-[Empty], [Empty]
+[EMPTY], [EMPTY]
 </textarea>
             </div>
         </div>
@@ -120,7 +136,12 @@ Brad, Danielle
             </div>
             <div>
                 <textarea id="discouragedGroups" rows="6">
-Brad,Ivan,Mona,Stan
+Bob, Giovanni
+Bob, Ryan
+Bob, Jesse
+Giovanni, Ryan
+Giovanni, Jesse
+Ryan, Jesse
 </textarea>
             </div>
         </div>
@@ -148,4 +169,5 @@ Brad,Ivan,Mona,Stan
 
     </div>
 </body>
+
 </html>
