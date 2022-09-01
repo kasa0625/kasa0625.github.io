@@ -11,7 +11,7 @@
 
 <body>
     <div id="controls">
-        <h1>Commander League Scheduler</h1>
+        <h1 id="appTitle">Commander League Scheduler</h1>
         <div>
             <div class="help-text">
                 Click the "Generate" button to get a new solution.
@@ -102,8 +102,7 @@ Terance
 Thomas
 Xavier
 [EMPTY]
-[EMPTY]
-</textarea>
+[EMPTY]</textarea>
             </div>
         </div>
         <div>
@@ -119,7 +118,7 @@ Xavier
             <div>
                 <textarea id="forbiddenPairs" rows="6">
 [EMPTY], [EMPTY]
-</textarea>
+                </textarea>
             </div>
         </div>
         <div>
@@ -142,7 +141,7 @@ Bob, Jesse
 Giovanni, Ryan
 Giovanni, Jesse
 Ryan, Jesse
-</textarea>
+                </textarea>
             </div>
         </div>
         <div>
@@ -156,6 +155,27 @@ Ryan, Jesse
                 <br /><a href="javascript:hideHelp()">Close help.</a>
             </div>
         </div>
+        <!-- This table holds the genetic parameters so that they can be tweaked without having to reload everything. -->
+        <table>
+            <tr>
+                <th>Number of generations</th>
+                <td>
+                    <input id="generationsInput" type="number" min="1" max="100" step="5" value="10" />
+                </td>
+            </tr>
+            <tr>
+                <th>Number of mutations</th>
+                <td>
+                    <input id="mutationsInput" type="number" min="0" max="15" step="1" value="1" />
+                </td>
+            </tr>
+            <tr>
+                <th>Number of descendants</th>
+                <td>
+                    <input id="descendantsInput" type="number" min="1" max="25000" step="500" value="100" />
+                </td>
+            </tr>
+        </table>
         <p>
             The goal of this app is to schedule <tt>g x p</tt> players into <tt>g</tt> groups of size <tt>p</tt> for
             <tt>w</tt> weeks such that no two players meet more than once.

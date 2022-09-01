@@ -3,28 +3,34 @@
 // These are references to the inputs column and the outputs column,
 // and an object to organize references to individual controls, so
 // that working with the DOM is more readable later.
-let controlsDiv, resultsDiv
-let controls = {}
+let controlsDiv, resultsDiv;
+let controls = {};
 const isDebug = true; //Turn console messages to console on or off.
-if (isDebug){console.log("Verbose Debugging is ON.");}
+if (isDebug){console.log("Verbose Debugging is ON.");};
 // Also references for the help text
-let helpDivs, showHelpLink, hideHelpLink
+let helpDivs, showHelpLink, hideHelpLink;
 
 // These variables hold the state of the input controls, which are
 // also the parameters we will pass into the solver.
-let groups = 0
-let ofSize = 0
-let forRounds = 0
-let playerNames = []
-let forbiddenPairs = Immutable.Set()
-let discouragedGroups = Immutable.Set()
+let groups = 0;
+let ofSize = 0;
+let forRounds = 0;
+
+let generations = 10;
+let mutations = 1;
+let descendants = 100;
+let lastRoundNum = 0;
+
+let playerNames = [];
+let forbiddenPairs = Immutable.Set();
+let discouragedGroups = Immutable.Set();
 
 // Each time we kick off the solver we will mark the time, so that
 // we can eaily report the time required to compute the solution.
 let startTime
 
 // This variable holds the last result returned by the solver,
-let lastResults
+let lastResults;
 
 // Next we launch a web worker which is responsible for the slow job
 // of actually computing a solution.
@@ -44,6 +50,7 @@ function init() {
   const playerList = document.getElementById('playerNames');
   const maxNumPlayers = document.getElementById('maxOfPlayers');
 
+  // get number of entered players and the maximum number of players that can be accepted
   maxNumPlayers.innerHTML = numGroups.value * groupSize.value;  
   const text = playerList.value;
   const lines = text.split("\n");
@@ -86,6 +93,7 @@ function init() {
     }
   })
 
+  // Define controls in page so they are accessible here
   controlsDiv = document.getElementById('controls')
   resultsDiv = document.getElementById('results')
   helpDivs = document.querySelectorAll('.help-text')
@@ -103,6 +111,9 @@ function init() {
   controls.playerNames = controlsDiv.querySelector('#playerNames')
   controls.forbiddenPairs = controlsDiv.querySelector('#forbiddenPairs')
   controls.discouragedGroups = controlsDiv.querySelector('#discouragedGroups')
+  controls.generationsInput = controlsDiv.querySelector('#generationsInput');
+  controls.mutationsInput = controlsDiv.querySelector('#mutationsInput');
+  controls.descendantsInput = controlsDiv.querySelector('#descendantsInput');
 
   // User input controls
   controls.generateButton.onclick = generateResults;
@@ -113,6 +124,12 @@ function init() {
   controls.playerNames.onchange = onPlayerNamesChanged
   controls.forbiddenPairs.onchange = onForbiddenPairsChanged
   controls.discouragedGroups.onchange = onDiscouragedGroupsChanged
+  // tweak genetic variables here ---- Remove once finished.
+  controls.generationsInput.onchange = onGeneticChanged;
+  controls.mutationsInput.onchange = onGeneticChanged;
+  controls.descendantsInput.onchange = onGeneticChanged;
+
+ 
 
   try {
     loadStateFromLocalStorage()
@@ -160,7 +177,7 @@ function generateResults() {
   lastResults = null;
   renderResults()
   disableControls()
-  myWorker.postMessage({groups, ofSize, forRounds, forbiddenPairs: forbiddenPairs.toJS(), discouragedGroups: discouragedGroups.toJS()})
+  myWorker.postMessage({groups, ofSize, forRounds, forbiddenPairs: forbiddenPairs.toJS(), discouragedGroups: discouragedGroups.toJS(), generations, mutations, descendants})
 }
 
 // Every time we finish computing results we save the solution and and the
@@ -175,7 +192,11 @@ function saveStateToLocalStorage() {
     playerNames,
     forbiddenPairs: forbiddenPairs.toJS(),
     discouragedGroups: discouragedGroups.toJS(),
-    lastResults
+    lastResults,
+    // store the genetics values
+    generations,
+    mutations,
+    descendants
   }))
 }
 
@@ -193,10 +214,21 @@ function loadStateFromLocalStorage() {
   controls.groupsSlider.value = state.groups
   controls.ofSizeSlider.value = state.ofSize
   controls.forRoundsSlider.value = state.forRounds
+  // Load genetics values from state
+  controls.generationsInput.value = state.generations;
+  controls.mutationsInput.value = state.mutations;
+  controls.descendantsInput.value = state.mutations;
+  // finish loading the rest of the values
   controls.playerNames.value = state.playerNames.join("\n")
   controls.forbiddenPairs.value = state.forbiddenPairs.map(x => x.map(i => state.playerNames[i]).join(",")).join("\n")
   controls.discouragedGroups.value = state.discouragedGroups.map(x => x.map(i => state.playerNames[i]).join(",")).join("\n")
   lastResults = state.lastResults 
+}
+
+function onGeneticChanged(){
+  generations = parseInt(controls.generationsInput.value, 10);
+  mutations = parseInt(controls.mutationsInput.value, 10);
+  descendants = parseInt(controls.descendantsInput.value, 10);
 }
 
 function onSliderMoved() {
@@ -372,11 +404,12 @@ function downloadCsv() {
 function renderResults() {
   resultsDiv.innerHTML = ''
   if (lastResults) {
+    //var lastRoundNum = 0
     lastResults.rounds.forEach((round, roundIndex) => {
       if (isDebug){
-        if (oldResults != lastResults.roundScores){
-        console.log("Render Results (Round " + roundIndex + " Scores): " + lastResults.roundScores);
-        oldResults = lastResults.roundScores;
+        if (lastRoundNum < lastResults.roundScores.length){
+          console.log("Render Results (Round " + (lastRoundNum+1) + " Scores): " + lastResults.roundScores);
+          lastRoundNum = lastResults.roundScores.length;
         }
       }
       const roundDiv = document.createElement('div')
@@ -417,6 +450,7 @@ function renderResults() {
     
     if (lastResults.done) {
       // Summary div - total time and CSV download
+      if(isDebug){lastRoundNum = 0;}
       const summaryDiv = document.createElement('div')
       summaryDiv.classList.add('resultsSummary');
       summaryDiv.style.borderTop = 'solid #aaaaaa thin'
