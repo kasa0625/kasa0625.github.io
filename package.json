@@ -1,8 +1,8 @@
 {
-  "name": "good-enough-golfers",
+  "name": "commander-league-scheduler",
   "version": "1.0.0",
-  "description": "The 'good enough' Social Golfer Problem Solver",
-  "author": "Brad Buchanan <bradley.c.buchanan@gmail.com>",
+  "description": "An automated Commander League Scheduler",
+  "author": "Keith Shelton <kasa0625@gmail.com",
   "license": "MIT",
   "devDependencies": {
     "http-server": "^0.11.1"
