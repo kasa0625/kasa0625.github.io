@@ -183,7 +183,7 @@ function generateResults() {
 // Every time we finish computing results we save the solution and and the
 // input parameters that produced it to local storage. Whenever the user
 // returns to the page we restore the latest solution. This would be helpful
-// to teachers that need an updated configuration for the same class.
+// to organizers that need an updated configuration for the same group.
 function saveStateToLocalStorage() {
   localStorage.setItem('appState', JSON.stringify({
     groups,
@@ -242,6 +242,7 @@ function onSliderMoved() {
   controls.forRoundsLabel.textContent = forRounds
 }
 
+// Disable Controls while a solution is being generated.
 function disableControls() {
   controls.generateButton.disabled = true
   controls.groupsSlider.disabled = true
@@ -255,6 +256,7 @@ function disableControls() {
   controls.generateButton.innerHTML = '&nbsp;<span class="spinner"></span>'
 }
 
+// Reenable controls once a solution is found.
 function enableControls() {
   controls.generateButton.disabled = false
   controls.groupsSlider.disabled = false
@@ -268,6 +270,7 @@ function enableControls() {
   controls.generateButton.innerHTML = 'Generate!'
 }
 
+// Build the array of Player Names and remove trailing whitespace.
 function readPlayerNames() {
   return controls.playerNames.value
     .split('\n')
@@ -359,6 +362,7 @@ function indicesOf(needle, haystack) {
   return indices
 }
 
+// Generate "Names" for players who have no names listed.
 function playerName(i) {
   return playerNames[i] ? playerNames[i] : `Player ${i+1}`
 }
@@ -401,6 +405,7 @@ function downloadCsv() {
   link.click()
 }
 
+// Render results onto the Page.
 function renderResults() {
   resultsDiv.innerHTML = ''
   if (lastResults) {
@@ -419,6 +424,7 @@ function renderResults() {
       header.textContent = `Round ${roundIndex+1}`
       const conflictScore = document.createElement('div')
       conflictScore.classList.add('conflictScore')
+      // Show total score for that round (lower is better, ideally 0)
       conflictScore.textContent = `Conflict score: ${lastResults.roundScores[roundIndex]}`
       header.appendChild(conflictScore)
   
