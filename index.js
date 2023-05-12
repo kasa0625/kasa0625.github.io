@@ -114,6 +114,7 @@ function init() {
   controls.generationsInput = controlsDiv.querySelector('#generationsInput');
   controls.mutationsInput = controlsDiv.querySelector('#mutationsInput');
   controls.descendantsInput = controlsDiv.querySelector('#descendantsInput');
+  controls.suggestedRounds = controlsDiv.querySelector('#suggestedRounds');
 
   // User input controls
   controls.generateButton.onclick = generateResults;
@@ -235,11 +236,20 @@ function onSliderMoved() {
   groups = parseInt(controls.groupsSlider.value, 10)
   ofSize = parseInt(controls.ofSizeSlider.value, 10)
   forRounds = parseInt(controls.forRoundsSlider.value, 10)
-
+  suggestRounds = 0;
+  // Check if group size is Even or Odd. This will determine how many
+  // rounds *should* be possible without duplicates.
+  if (ofSize % 2 == 0) { 
+    suggestRounds = Math.floor(((ofSize * groups) + 2) / 4);
+  } else {
+    suggestRounds = Math.floor(((ofSize * groups) + 2) / 4 - (ofSize * groups) / 4 * ofSize);
+  }
   // Update labels
   controls.groupsLabel.textContent = groups
   controls.ofSizeLabel.textContent = ofSize
   controls.forRoundsLabel.textContent = forRounds
+  controls.suggestedRounds.textContent = suggestRounds
+  
 }
 
 // Disable Controls while a solution is being generated.
