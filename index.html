@@ -16,7 +16,7 @@
           Click the "Generate" button to get a new solution.<br />
           Customize group size, number of groups, and number of rounds with the sliders.<br />
           Solutions with more rounds and larger groups take longer to compute.<br/>
-          The maximum suggested number of rounds is in parentheses after. 
+          The maximum suggested number of rounds is in parentheses after the rounds slider. 
         </div>
       </div>
       <button type="button" id="generateButton">Generate!</button>
@@ -37,9 +37,10 @@
         </tr>
         <tr>
           <th>Number of rounds</th>
-          <td class="sliderLabel" id="forRoundsLabel">0</td><span id="suggestedRounds"></span>
+          <td class="sliderLabel" id="forRoundsLabel">0</td>
           <td>
-            <input id="forRoundsSlider" type="range" min="1" max="20" step="1" value="5" />
+            <input id="forRoundsSlider" style="width:70%;" type="range" min="1" max="20" step="1" value="5" />
+            <span id="suggestedRounds" style="font-size:small;color:gray;vertical-align: middle;"></span>
           </td>
         </tr>
       </table>
