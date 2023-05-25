@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Commander League Scheduler</title>
     <link rel="stylesheet" href="index.css" />
     <script src="https://cdn.jsdelivr.net/npm/immutable@3.8.2/dist/immutable.min.js"></script>
@@ -25,29 +25,29 @@
           <th>Number of groups</th>
           <td class="sliderLabel" id="groupsLabel">0</td>
           <td>
-            <input id="groupsSlider" type="range" min="1" max="30" step="1" value="8" />
+            <input id="groupsSlider" placeholder="Group Count Slider" type="range" min="1" max="30" step="1" value="8" />
           </td>
         </tr>
         <tr>
           <th>People per group</th>
           <td class="sliderLabel" id="ofSizeLabel">0</td>
           <td>
-            <input id="ofSizeSlider" type="range" min="2" max="15" step="1" value="4" />
+            <input id="ofSizeSlider" placeholder="Group Size Slider" type="range" min="2" max="15" step="1" value="4" />
           </td>
         </tr>
         <tr>
           <th>Number of rounds</th>
           <td class="sliderLabel" id="forRoundsLabel">0</td>
           <td>
-            <input id="forRoundsSlider" style="width:70%;" type="range" min="1" max="20" step="1" value="5" />
-            <span id="suggestedRounds" style="font-size:small;color:gray;vertical-align: middle;"></span>
+            <input id="forRoundsSlider" placeholder="Rounds Slider" type="range" min="1" max="20" step="1" value="5" />
+            <span id="suggestedRounds"></span>
           </td>
         </tr>
       </table>
       <div>
         <div>
           <strong>Player Names</strong>
-          <span id="playerCountComparison" style="color: blue; font-style: italic; font-size: 75%;">
+          <span id="playerCountComparison">
             (<span id="numOfPlayers">X</span> of <span id="maxOfPlayers">Y</span>)
             <span id="errTooManyPlayers" class="error-message">Too Many Players!</span>
           </span>
@@ -64,7 +64,7 @@
           Tip: To produce mostly-even groups with an uneven number of players, create players named <tt>[Empty]</tt> to round out your roster, and add an <tt>[Empty],[Empty]</tt> constraint in the next box.
         </div>
         <div>
-          <textarea id="playerNames" rows="21">
+          <textarea id="playerNames" placeholder="Player Names" rows="21">
 Ahmed
 Sophia
 Juan
@@ -109,7 +109,7 @@ Layla
           Put groups on separate lines.
         </div>
         <div>
-          <textarea id="forbiddenPairs" rows="6">
+          <textarea id="forbiddenPairs" placeholder="Forbidden Pairs" rows="6">
 [EMPTY], [EMPTY]
           </textarea>
         </div>
@@ -123,7 +123,7 @@ Layla
           Tip: You can encourage the solver to gender-balance groups by listing all players of one gender in a group here.
         </div>
         <div>
-          <textarea id="discouragedGroups" rows="6">
+          <textarea id="discouragedGroups" placeholder="Discouraged Groups" rows="6">
 Mateo, Lila
 Xavier, Amara
 Ahmed, Sophia
@@ -135,7 +135,6 @@ Ahmed, Sophia
           The <strong>conflict score</strong> is a representation of how far the solution is from perfect - lower is better.<br />
           The <strong>Download CSV</strong> button provides a pivot view of the solution that makes it easier to see the sequence of groups for a given player.<br />
           <br />
-          <a id="show-help-link" href="javascript:showHelp()">Show Help</a>
           <a id="hide-help-link" href="javascript:hideHelp()">Close Help</a>
         </div>
       </div>
@@ -144,19 +143,19 @@ Ahmed, Sophia
         <tr>
           <th>Number of generations</th>
           <td>
-            <input id="generationsInput" type="number" min="1" max="100" step="5" value="10" />
+            <input id="generationsInput" placeholder="Generations Input" type="number" min="1" max="100" step="5" value="10" />
           </td>
         </tr>
         <tr>
           <th>Number of mutations</th>
           <td>
-            <input id="mutationsInput" type="number" min="0" max="15" step="1" value="1" />
+            <input id="mutationsInput" placeholder="Mutations Input" type="number" min="0" max="15" step="1" value="1" />
           </td>
         </tr>
         <tr>
           <th>Number of descendants</th>
           <td>
-            <input id="descendantsInput" type="number" min="1" max="25000" step="500" value="100" />
+            <input id="descendantsInput" placeholder="Descendants Input" type="number" min="1" max="25000" step="500" value="100" />
           </td>
         </tr>
       </table>
@@ -165,7 +164,6 @@ Ahmed, Sophia
       </p>
       <p>
         <a id="show-help-link" href="javascript:showHelp()">Help</a>
-        <a id="hide-help-link" href="javascript:hideHelp()">Close Help</a>
       </p>
     </div>
     <div id="results"></div>

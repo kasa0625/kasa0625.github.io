@@ -225,6 +225,21 @@ source: https://stephanwagner.me/only-css-loading-spinner
   animation: spinner .6s linear infinite;
 }
 
+#forRoundsSlider {
+    width:70%;
+}
+
+#suggestedRounds{
+    font-size: small;
+    color: gray;
+    vertical-align: middle;
+}
+
+#playerCountComparison {
+    color: blue;
+    font-style: italic;
+    font-size: 75%;
+}
 /*
 Print mode: Something you could hand out to participants.
 - Full-width results
