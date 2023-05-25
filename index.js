@@ -248,7 +248,7 @@ function onSliderMoved() {
   controls.groupsLabel.textContent = groups
   controls.ofSizeLabel.textContent = ofSize
   controls.forRoundsLabel.textContent = forRounds
-  controls.suggestedRounds.textContent = suggestRounds
+  controls.suggestedRounds.textContent = "("+suggestRounds+")"
   
 }
 
