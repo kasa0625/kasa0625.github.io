@@ -242,7 +242,7 @@ function onSliderMoved() {
   if (ofSize % 2 == 0) { 
     suggestRounds = Math.floor(((ofSize * groups) + 2) / 4);
   } else {
-    suggestRounds = Math.floor(((ofSize * groups) + 2) / 4 - (ofSize * groups) / 4 * ofSize);
+    suggestRounds = Math.floor((((ofSize * groups) + 2) / 4) - ((ofSize * groups) / (4 * ofSize)));
   }
   // Update labels
   controls.groupsLabel.textContent = groups
