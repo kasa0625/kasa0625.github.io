@@ -15,23 +15,6 @@ function geneticSolver(groups, ofSize, forRounds, forbiddenPairs=[], discouraged
       groupsScores: groupScores,
       total: groupScores.reduce((sum, next) => sum + next, 0),
     };
-function geneticSolver(groups, ofSize, forRounds, forbiddenPairs=[], discouragedGroups=[], onProgress, g, m, d) {
-  const totalSize = groups * ofSize; // Calculate the total size based on the number of groups and their respective sizes
-  const GENERATIONS = g; // Define the number of generations
-  const RANDOM_MUTATIONS = m; // Define the number of random mutations to apply
-  const MAX_DESCENDANTS_TO_EXPLORE = d; // Define the maximum number of descendants to explore
-  // Define a function to calculate the score of a given round and weights
-  function score(round, weights) {
-    const groupScores = round.map(group => { // Calculate the score for each group in the round
-      let groupCost = 0;
-      forEachPair(group, (a, b) => groupCost += Math.pow(weights[a][b], 2)); // Calculate the cost based on the weights of pairs within the group
-      return groupCost;
-    });
-    return { // Return an object containing the round and its scores
-      groups: round,
-      groupsScores: groupScores,
-      total: groupScores.reduce((sum, next) => sum + next, 0),
-    };
   }
 
   function generatePermutation() {
@@ -139,4 +122,3 @@ function forEachPair(array, callback) {
     }
   }
 }
-
