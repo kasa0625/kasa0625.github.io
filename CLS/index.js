@@ -501,6 +501,14 @@ function renderResults() {
     }
   }
 }
+/* Set the width of the side navigation to 250px */
+function openNav() {
+  document.getElementById("controls").style.width = "250px";
+}
 
+/* Set the width of the side navigation to 0 */
+function closeNav() {
+  document.getElementById("controls").style.width = "0";
+}
 document.addEventListener('DOMContentLoaded', init)
 document.addEventListener('DOMContentLoaded', init)

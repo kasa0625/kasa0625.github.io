@@ -9,9 +9,10 @@
   </head>
 
   <body>
-    <div id="controls">
+    <div id="controls" class="sidenav">
+      <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
       <h1>Commander League Scheduler</h1>
-      <div>
+      <div class="content">
         <div class="help-text">
           Click the "Generate" button to get a new solution.<br />
           Customize group size, number of groups, and number of rounds with the sliders.<br />
@@ -166,6 +167,7 @@ Ahmed, Sophia
         <a id="show-help-link" href="javascript:showHelp()">Help</a>
       </p>
     </div>
+    <span onclick="openNav()">&#9776;</span>
     <div id="results"></div>
   </body>
 </html>
