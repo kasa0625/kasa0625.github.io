@@ -128,9 +128,8 @@ function init() {
   // tweak genetic variables here ---- Remove once finished.
   controls.generationsInput.onchange = onGeneticChanged;
   controls.mutationsInput.onchange = onGeneticChanged;
-  controls.descendantsInput.onchange = onGeneticChanged;
-
- 
+  controls.descendantsInput.onchange = onGeneticChanged; 
+  //document.getElementById('openNav').style.display.visibility = 'hidden';
 
   try {
     loadStateFromLocalStorage()
@@ -174,6 +173,10 @@ function onResults(e) {
 }
 
 function generateResults() {
+  // document.getElementById('controls').style.visibility = 'hidden';
+  // document.getElementById("mySidenav").style.width = "0";
+  // document.getElementById("mySidenav").style.visibility = 'hidden';
+  //document.getElementById('openNav').style.visibility = 'visible';
   startTime = Date.now();
   lastResults = null;
   renderResults()
@@ -501,14 +504,5 @@ function renderResults() {
     }
   }
 }
-/* Set the width of the side navigation to 250px */
-function openNav() {
-  document.getElementById("controls").style.width = "250px";
-}
 
-/* Set the width of the side navigation to 0 */
-function closeNav() {
-  document.getElementById("controls").style.width = "0";
-}
-document.addEventListener('DOMContentLoaded', init)
 document.addEventListener('DOMContentLoaded', init)
