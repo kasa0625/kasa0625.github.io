@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">3D Printing Cost Estimator</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4f46e5',
+                        'primary-dark': '#4338ca',
+                        'surface': '#f9fafb',
+                        'card': '#ffffff',
+                        'success': '#10b981', // For Invoice mode
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Base styling for aesthetics and scroll handling */
+        body {
+            font-family: 'Inter', 'sans-serif';
+            background-color: #e5e7eb;
+            min-height: 100vh;
+            /* Default: Estimate Mode */
+            --primary-color: #4f46e5;
+            --secondary-color: #4338ca;
+            --accent-color: #eef2ff;
+        }
+        /* Ensure input focus ring works correctly */
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.5);
+        }
+
+        /* INVOICE MODE STYLES */
+        .invoice-mode {
+            --primary-color: #10b981; /* Green */
+            --secondary-color: #059669; 
+            --accent-color: #ecfdf5;
+        }
+
+        .invoice-mode .header-title {
+            color: var(--secondary-color);
+        }
+
+        .invoice-mode .total-card {
+             border-color: var(--secondary-color) !important;
+        }
+
+        /* HIDE INPUT CONTROLS IN FINAL MODE */
+        .invoice-mode #input-controls {
+            /* We still need the firebase controls in invoice mode */
+        }
+        
+        .invoice-mode #controls-row {
+             /* Hide the mode toggle */
+             display: none !important;
+        }
+
+        /* --- PRINT STYLES --- */
+        @media print {
+            /* Hide the main header, toggle, and buttons from print output */
+            #header-and-controls, 
+            #calculate-button,
+            #firebase-controls {
+                display: none !important;
+            }
+
+            /* Force the breakdown column to take full width and remove stickiness */
+            .print-container {
+                display: block;
+                width: 100%;
+            }
+            .lg\:col-span-1 {
+                grid-column: span 3 / span 3;
+            }
+            .sticky {
+                position: static !important;
+            }
+
+            /* Ensure background is white and text is black for printing */
+            body {
+                background-color: white !important;
+                color: black !important;
+            }
+            .bg-card, .shadow-lg, .border {
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+            }
+
+            /* Add top margin to the results card to act as the printed document start */
+            #results-container {
+                margin-top: 2rem;
+                padding-top: 1rem;
+            }
+            /* Ensure the print header is visible */
+            #print-header {
+                display: block !important;
+            }
+        }
+
+        /* Toggle Switch Styling (Mode) */
+        .toggle-switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 80px;
+            height: 34px;
+        }
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--secondary-color);
+        }
+        input:checked + .slider:before {
+            transform: translateX(45px);
+        }
+        .mode-label {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            transition: opacity 0.4s;
+            user-select: none;
+        }
+        #estimate-label {
+            left: 10px;
+            color: #444;
+        }
+        #invoice-label {
+            right: 10px;
+            opacity: 0;
+        }
+        input:checked ~ #estimate-label {
+            opacity: 0;
+        }
+        input:checked ~ #invoice-label {
+            opacity: 1;
+            color: white;
+        }
+
+        /* Tax Toggle Styling */
+        #tax-toggle:checked ~ .block {
+            background-color: var(--primary-color);
+        }
+        #tax-toggle:checked ~ .dot {
+            transform: translateX(150%);
+        }
+        .block {
+            transition: background-color 0.4s;
+        }
+        
+        /* Modal Backdrop */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div class="max-w-6xl mx-auto print-container">
+        <!-- Main Header and Controls (Hidden when printing) -->
+        <div id="header-and-controls">
+            <header class="text-center mb-6 sm:mb-8">
+                <h1 id="main-app-title" class="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">3D Print Price Estimator</h1>
+                <p id="main-app-subtitle" class="mt-2 text-lg text-gray-600">Calculate the total price based on the **Hybrid Pricing Model**.</p>
+            </header>
+
+            <div id="controls-row" class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
+                <!-- Mode Toggle -->
+                <div class="toggle-switch-container bg-card p-3 rounded-xl shadow-md">
+                    <span class="text-sm font-medium text-gray-700 mr-4">Estimate Mode</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="mode-toggle">
+                        <span class="slider round"></span>
+                        <span id="estimate-label" class="mode-label">EST</span>
+                        <span id="invoice-label" class="mode-label">INV</span>
+                    </label>
+                    <span class="text-sm font-medium text-gray-700 ml-4">Final Invoice</span>
+                </div>
+                
+                <!-- Print Button -->
+                <button id="print-button" class="px-6 py-3 bg-gray-600 text-white font-bold rounded-xl shadow-md hover:bg-gray-700 transition duration-200 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5 4v2a2 2 0 012-2h6a2 2 0 012 2v2h2a2 2 0 012 2v5a2 2 0 01-2 2H3a2 2 0 01-2-2v-5a2 2 0 012-2h2V4zm0 2h10V4H5v2zm-2 4a1 1 0 011-1h12a1 1 0 011 1v5a1 1 0 01-1 1H4a1 1 0 01-1-1v-5zM9 13a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    Print Document
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Calculator Grid -->
+        <div id="calculator-grid" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Inputs Column (Col 1 & 2 on Desktop) -->
+            <div id="input-controls" class="lg:col-span-2 space-y-6">
+                 <!-- Firebase Controls (Save/Load) -->
+                <div id="firebase-controls" class="bg-card p-4 rounded-xl shadow-lg border-2 border-primary/20 flex gap-4 items-center justify-between">
+                    <div id="user-status" class="text-xs font-medium text-gray-500">
+                        <span id="user-id-display">Loading User...</span>
+                    </div>
+                    <div class="flex gap-3">
+                        <button id="save-job-button" class="px-4 py-2 bg-primary/90 text-white font-semibold rounded-lg shadow-md hover:bg-primary transition duration-200 text-sm flex items-center disabled:opacity-50" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M7 3a1 1 0 011-1h4a1 1 0 011 1v1a1 1 0 001 1h2a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V7a2 2 0 012-2h2a1 1 0 001-1V3zm2 4a1 1 0 00-2 0v5a1 1 0 102 0V7zm4 0a1 1 0 10-2 0v5a1 1 0 102 0V7z" />
+                            </svg>
+                            Save Job
+                        </button>
+                        <button id="load-jobs-button" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition duration-200 text-sm flex items-center disabled:opacity-50" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H5v10h10V5h-3a1 1 0 110-2h4a1 1 0 011 1v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                            </svg>
+                            Load Job
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Section 0: Project & Customer Details -->
+                <div class="bg-card p-6 rounded-xl shadow-lg border border-gray-100">
+                    <h2 class="text-xl font-semibold text-primary mb-4">0. Project & Customer Details</h2>
+                    <!-- Project Name -->
+                    <div class="mb-4">
+                        <label for="project-name" class="block text-sm font-medium text-gray-700">Project Name / Job ID</label>
+                        <input type="text" id="project-name" value="Custom Widget v1.0" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition" placeholder="e.g., Custom Widget v1.0">
+                    </div>
+                    <!-- Customer Name -->
+                    <div class="mb-4">
+                        <label for="customer-name" class="block text-sm font-medium text-gray-700">Customer Name</label>
+                        <input type="text" id="customer-name" value="Acme Corp." class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition" placeholder="e.g., Jane Doe / Acme Industries">
+                    </div>
+                    <!-- Customer Contact Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="customer-email" class="block text-sm font-medium text-gray-700">Customer Email</label>
+                            <input type="email" id="customer-email" value="customer@example.com" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition" placeholder="e.g., jane@example.com">
+                        </div>
+                        <div>
+                            <label for="customer-phone" class="block text-sm font-medium text-gray-700">Customer Phone</label>
+                            <input type="text" id="customer-phone" value="(555) 123-4567" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition" placeholder="e.g., (555) 123-4567">
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Section 1: Core Print Metrics (Machine Time & Material) -->
+                <div class="bg-card p-6 rounded-xl shadow-lg border border-gray-100">
+                    <h2 class="text-xl font-semibold text-primary mb-4">1. Print & Material Basics</h2>
+                    
+                    <!-- Print Time Input -->
+                    <div class="mb-4">
+                        <label for="print-time" class="block text-sm font-medium text-gray-700">Print Time (Hours)</label>
+                        <input type="number" id="print-time" value="4" step="0.01" min="0" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition" placeholder="e.g., 4.5">
+                    </div>
+                    
+                    <!-- Material Type Input -->
+                    <div class="mb-4">
+                        <label for="material-type" class="block text-sm font-medium text-gray-700">Material Type</label>
+                        <input type="text" id="material-type" value="PLA+" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition" placeholder="e.g., PETG, TPU, ABS, PLA+">
+                    </div>
+
+                    <!-- Material Weight Input -->
+                    <div class="mb-4">
+                        <label for="material-weight" class="block text-sm font-medium text-gray-700">Filament Used (Grams)</label>
+                        <input type="number" id="material-weight" value="20" step="0.1" min="0" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition" placeholder="e.g., 80">
+                    </div>
+
+                    <h3 class="text-lg font-medium text-gray-900 mt-6 mb-4 border-t pt-4">Your Custom Rates</h3>
+
+                    <!-- Machine Rate Input -->
+                    <div class="mb-4">
+                        <label for="machine-rate" class="block text-sm font-medium text-gray-700">Machine Time Rate (Rate per Hour - \$)</label>
+                        <input type="number" id="machine-rate" value="2.00" step="0.01" min="0" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition" placeholder="e.g., 2.00 (\$1 - \$3 suggested)">
+                    </div>
+
+                    <!-- Material Rate Input -->
+                    <div>
+                        <label for="material-rate" class="block text-sm font-medium text-gray-700">Material Cost Rate (Rate per Gram - \$)</label>
+                        <input type="number" id="material-rate" value="0.10" step="0.001" min="0" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition" placeholder="e.g., 0.10 (\$0.05 - \$0.15 suggested)">
+                    </div>
+                </div>
+
+                <!-- Section 2: Setup/Prep Fee (The Variable Charge) -->
+                <div class="bg-card p-6 rounded-xl shadow-lg border border-gray-100">
+                    <h2 class="text-xl font-semibold text-primary mb-4">2. Setup & Prep Fee</h2>
+                    <p class="text-sm text-gray-500 mb-4">This covers slicing, orientation, and potential file repair.</p>
+
+                    <!-- Setup Type Radio Buttons -->
+                    <div class="flex flex-wrap gap-4 mb-6" id="setup-radios">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="setup-type" value="simple" checked class="form-radio h-4 w-4 text-primary focus:ring-primary rounded-full">
+                            <span class="ml-2 text-gray-700 font-medium">Simple / Print-Ready (\$3 - \$10 Fixed)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="setup-type" value="complex" class="form-radio h-4 w-4 text-primary focus:ring-primary rounded-full">
+                            <span class="ml-2 text-gray-700 font-medium">Complex / Repair Needed (Hourly)</span>
+                        </label>
+                    </div>
+
+                    <!-- Complex Setup Inputs (Hidden by default, shown by JS logic later) -->
+                    <div id="complex-setup-inputs" class="bg-surface p-4 rounded-lg border border-gray-200" style="display: none;">
+                        <p class="text-sm text-gray-600 mb-3 font-semibold">For Complex Setup:</p>
+                        <div class="flex gap-4">
+                            <div class="w-1/2">
+                                <label for="setup-hours" class="block text-xs font-medium text-gray-700">Repair/Design Time (Hours)</label>
+                                <input type="number" id="setup-hours" value="1" step="0.1" min="0" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary transition" placeholder="e.g., 1.0">
+                            </div>
+                            <div class="w-1/2">
+                                <label for="setup-hourly-rate" class="block text-xs font-medium text-gray-700">Hourly Rate (\$)</label>
+                                <input type="number" id="setup-hourly-rate" value="25.00" step="0.01" min="0" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary transition" placeholder="e.g., 25.00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Simple Setup Input (Shown by default) -->
+                    <div id="simple-setup-inputs" class="bg-surface p-4 rounded-lg border border-gray-200">
+                         <div class="w-full">
+                            <label for="simple-setup-fee" class="block text-xs font-medium text-gray-700">Fixed Simple Setup Fee (\$)</label>
+                            <input type="number" id="simple-setup-fee" value="5.00" step="0.01" min="0" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary transition" placeholder="e.g., 5.00">
+                        </div>
+                    </div>
+                </div>
+
+                 <!-- Section 3: Post-Processing Fee -->
+                <div class="bg-card p-6 rounded-xl shadow-lg border border-gray-100">
+                    <h2 class="text-xl font-semibold text-primary mb-4">3. Post-Processing Fee</h2>
+                    <p class="text-sm text-gray-500 mb-4">Work done after the print (sanding, gluing, painting, etc.).</p>
+
+                    <!-- Post-Processing Type Radio Buttons -->
+                    <div class="flex flex-wrap gap-4 mb-6" id="pp-radios">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="post-process-type" value="basic" checked class="form-radio h-4 w-4 text-primary focus:ring-primary rounded-full">
+                            <span class="ml-2 text-gray-700 font-medium">Basic Support Removal (Included/\$0)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="post-process-type" value="advanced_fixed" class="form-radio h-4 w-4 text-primary focus:ring-primary rounded-full">
+                            <span class="ml-2 text-gray-700 font-medium">Advanced Fixed Fee (\$5 - \$20)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="post-process-type" value="advanced_hourly" class="form-radio h-4 w-4 text-primary focus:ring-primary rounded-full">
+                            <span class="ml-2 text-gray-700 font-medium">Advanced Hourly Rate (\$15 - \$25/hr)</span>
+                        </label>
+                    </div>
+
+                     <!-- Advanced Post-Processing Inputs (Hidden by default) -->
+                    <div id="advanced-post-process-inputs" class="bg-surface p-4 rounded-lg border border-gray-200" style="display: none;">
+                        <p class="text-sm text-gray-600 mb-3 font-semibold">For Advanced Post-Processing:</p>
+                        <div class="flex gap-4">
+                            <!-- Fixed Fee input for the advanced_fixed option -->
+                            <div id="pp-fixed-input" class="w-1/2">
+                                <label for="pp-fixed-fee" class="block text-xs font-medium text-gray-700">Fixed Fee (\$)</label>
+                                <input type="number" id="pp-fixed-fee" value="10.00" step="0.01" min="0" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary transition" placeholder="e.g., 10.00">
+                            </div>
+                            <!-- Hourly Rate inputs for the advanced_hourly option -->
+                            <div id="pp-hourly-inputs" class="w-full flex gap-4" style="display: none;">
+                                <div class="w-1/2">
+                                    <label for="pp-hourly-rate" class="block text-xs font-medium text-gray-700">Hourly Rate (\$)</label>
+                                    <input type="number" id="pp-hourly-rate" value="20.00" step="0.01" min="0" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary transition" placeholder="e.g., 20.00">
+                                </div>
+                                <div class="w-1/2">
+                                    <label for="pp-hours" class="block text-xs font-medium text-gray-700">Time Spent (Hours)</label>
+                                    <input type="number" id="pp-hours" value="0.5" step="0.1" min="0" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary transition" placeholder="e.g., 0.5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Additional Fees & Tax (NEW SECTION) -->
+                <div class="bg-card p-6 rounded-xl shadow-lg border border-gray-100">
+                    <h2 class="text-xl font-semibold text-primary mb-4">4. Additional Fees & Tax</h2>
+
+                    <!-- Dynamic Fees Area -->
+                    <h3 class="text-lg font-medium text-gray-900 mb-3">Optional Ad-hoc Fees</h3>
+                    <div id="dynamic-fees-container" class="space-y-3 mb-6">
+                        <!-- Initial fee row. JS will manage this and any added rows. -->
+                        <div class="flex gap-2 items-center dynamic-fee-row">
+                            <input type="text" placeholder="Fee Name (e.g., Shipping)" value="Shipping" class="flex-grow rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary text-sm dynamic-fee-name">
+                            <input type="number" placeholder="Value" value="15.00" step="0.01" min="0" class="w-24 rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary text-sm dynamic-fee-amount">
+                            <select class="rounded-lg border-gray-300 shadow-sm p-2 text-sm dynamic-fee-type">
+                                <option value="fixed" selected>Fixed ($)</option>
+                                <option value="percent">%</option>
+                            </select>
+                            <button type="button" class="text-red-500 hover:text-red-700 p-1 remove-fee-btn" title="Remove Fee">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.72-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button id="add-fee-button" class="w-full text-sm py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition duration-150 border border-gray-300 flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Another Fee
+                    </button>
+
+                    <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3 border-t pt-4">Sales Tax (Optional)</h3>
+                    <!-- Sales Tax Control -->
+                    <div class="flex items-center justify-between bg-surface p-4 rounded-lg border border-gray-200">
+                        <div class="flex items-center">
+                            <label for="tax-toggle" class="flex items-center cursor-pointer">
+                                <div class="relative">
+                                    <input type="checkbox" id="tax-toggle" class="sr-only" checked>
+                                    <div class="block bg-primary w-10 h-6 rounded-full transition"></div>
+                                    <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition transform translate-x-full"></div>
+                                </div>
+                                <div class="ml-3 text-sm font-medium text-gray-700">
+                                    Apply Sales Tax
+                                </div>
+                            </label>
+                        </div>
+                        <div class="w-1/3">
+                            <label for="tax-rate" class="block text-xs font-medium text-gray-700 text-right">Rate (%)</label>
+                            <input type="number" id="tax-rate" value="8.0" step="0.01" min="0" max="100" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary text-sm text-right" placeholder="e.g., 8.25">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 5: Internal Job Notes/Memo -->
+                <div class="bg-card p-6 rounded-xl shadow-lg border border-gray-100">
+                    <h2 class="text-xl font-semibold text-primary mb-4">5. Internal Job Notes / Memo</h2>
+                    <p class="text-sm text-gray-500 mb-4">Include print settings, specific requirements, or delivery notes here (for internal use/print reference).</p>
+                    <textarea id="job-notes" rows="4" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition" placeholder="e.g., Use 0.6mm nozzle, 15% infill, needs blue filament, customer pickup on Friday."></textarea>
+                </div>
+
+
+                <!-- Calculate Button (Now passive, but left for context) -->
+                <button id="calculate-button" class="w-full py-4 text-xl font-bold bg-primary text-white rounded-xl shadow-lg hover:bg-primary-dark transition duration-200 transform hover:scale-[1.01] print:hidden">
+                    Total Price Calculated (Real-Time)
+                </button>
+            </div>
+
+
+            <!-- Results/Breakdown Column (Col 3 on Desktop) -->
+            <div id="results-container" class="lg:col-span-1">
+                <div class="sticky top-4 space-y-6">
+
+                    <!-- Print Header (Visible ONLY on print) -->
+                    <div id="print-header" class="hidden text-center mb-8 border-b-2 pb-4">
+                        <h1 id="print-title" class="text-3xl font-extrabold text-gray-900 mb-4">ESTIMATE</h1>
+
+                        <!-- Project & Customer Details -->
+                        <div class="text-left p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <p class="mb-2"><span class="font-bold text-gray-800">Project:</span> <span id="print-project-name"></span></p>
+                            <p class="mb-2"><span class="font-bold text-gray-800">Customer:</span> <span id="print-customer-name"></span></p>
+                            <p class="mb-2"><span class="font-bold text-gray-800">Material:</span> <span id="print-material-type"></span></p>
+                            <p class="text-xs text-gray-600 mb-3"><span id="print-customer-email"></span> | <span id="print-customer-phone"></span></p>
+
+                            <!-- Job Notes Display Area -->
+                            <div id="print-job-notes-container" class="mt-4 pt-4 border-t border-gray-300 hidden">
+                                <p class="font-bold text-gray-800 mb-1">Job Notes:</p>
+                                <p id="print-job-notes" class="whitespace-pre-wrap text-sm italic text-gray-700"></p>
+                            </div>
+
+                            <div class="grid grid-cols-2 text-sm gap-y-1 mt-2 border-t pt-2">
+                                <div class="text-left"><span class="font-bold text-gray-700">Document Date:</span> <span id="document-date" class="text-gray-600"></span></div>
+                                <div class="text-right"><span class="font-bold text-gray-700">Job ID:</span> <span id="document-id" class="text-gray-600"></span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Price Card -->
+                    <div class="bg-card p-6 rounded-xl shadow-lg border-2 border-primary-dark total-card">
+                        <p class="text-sm font-medium text-gray-500 mb-1">Total Amount</p>
+                        <div class="flex items-center justify-between">
+                             <h2 class="text-4xl font-extrabold text-gray-900" id="total-price-display">\$0.00</h2>
+                             <span id="model-tag" class="text-xs font-semibold text-primary px-3 py-1 bg-primary/10 rounded-full">HYBRID MODEL</span>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown Card (Results) -->
+                    <div class="bg-card p-6 rounded-xl shadow-lg border border-gray-100">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-4 header-title">Cost Breakdown</h3>
+                        <div id="breakdown-list" class="space-y-3">
+                            <!-- Dynamic Breakdown Items will be inserted here -->
+                        </div>
+                         <!-- Separator -->
+                        <div class="border-t border-gray-200 mt-4 pt-4">
+                            <div class="flex justify-between items-center text-lg font-extrabold text-gray-900">
+                                <span>TOTAL AMOUNT</span>
+                                <span id="total-price-summary">\$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Boilerplate Area (Only appears when printing) -->
+                    <div id="boilerplate-area" class="mt-8 p-4 text-sm text-gray-600 bg-surface rounded-xl hidden print:block">
+                        <h4 class="font-bold text-gray-800 mb-2">Important Notice:</h4>
+                        <div id="boilerplate-text"></div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Load Jobs Modal -->
+    <div id="load-jobs-modal" class="modal-backdrop hidden">
+        <div class="bg-card rounded-xl shadow-2xl p-6 w-11/12 max-w-lg max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4 border-b pb-3">
+                <h3 class="text-xl font-bold text-gray-900">Load Saved Jobs</h3>
+                <button id="close-load-jobs-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <p id="load-status" class="text-sm text-red-500 mb-4 hidden">Error loading jobs.</p>
+            <div id="saved-jobs-list" class="space-y-3">
+                <p class="text-gray-500 italic text-sm">No jobs found yet. Save one to see it here!</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- Firebase Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Set log level to debug for console visibility
+        setLogLevel('debug');
+
+        // --- Globals ---
+        let currentMode = 'estimate'; // 'estimate' or 'invoice'
+        let currentDocumentId = crypto.randomUUID().substring(0, 8).toUpperCase();
+        let db, auth;
+        let userId;
+
+        // --- Firebase/Auth Initialization (MANDATORY CANVAS GLOBALS) ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            // Auth Listener and Sign-in
+            (async () => {
+                try {
+                    if (authToken) {
+                        await signInWithCustomToken(auth, authToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    userId = auth.currentUser?.uid;
+                    document.getElementById('user-id-display').textContent = `User ID: ${userId}`;
+                    document.getElementById('save-job-button').disabled = false;
+                    document.getElementById('load-jobs-button').disabled = false;
+                    
+                    // Start listening to the jobs collection
+                    setupJobsListener();
+
+                } catch (error) {
+                    console.error("Firebase Auth Error:", error);
+                    document.getElementById('user-id-display').textContent = 'Error: Authentication failed.';
+                }
+            })();
+        } else {
+            console.error("Firebase Config not available. Storage functionality disabled.");
+            document.getElementById('user-id-display').textContent = 'Storage Disabled.';
+        }
+        
+        // --- Firestore Utility Functions ---
+
+        const getJobCollectionRef = () => {
+            if (!userId || !db) return null;
+            // Private data path: /artifacts/{appId}/users/{userId}/jobs
+            return collection(db, `artifacts/${appId}/users/${userId}/jobs`);
+        };
+        
+        /**
+         * Collects all current input data into a serializable object.
+         */
+        const collectJobData = () => {
+            const dynamicFees = [];
+            document.querySelectorAll('#dynamic-fees-container .dynamic-fee-row').forEach(row => {
+                const name = row.querySelector('.dynamic-fee-name').value;
+                const amount = parseFloat(row.querySelector('.dynamic-fee-amount').value);
+                const type = row.querySelector('.dynamic-fee-type').value;
+
+                if (!isNaN(amount) && name.trim()) {
+                    dynamicFees.push({ name, amount, type });
+                }
+            });
+            
+            // Get final calculated total (needs to be run first for accuracy)
+            const finalTotal = parseFloat(document.getElementById('total-price-display').textContent.replace('$', '').replace(',', '')) || 0;
+
+            return {
+                // Meta
+                mode: currentMode,
+                timestamp: Date.now(),
+                finalTotal: finalTotal, 
+                
+                // Section 0
+                projectName: getTextFieldValue('project-name'),
+                customerName: getTextFieldValue('customer-name'),
+                customerEmail: getTextFieldValue('customer-email'),
+                customerPhone: getTextFieldValue('customer-phone'),
+                
+                // Section 5 (Memo)
+                jobNotes: getTextFieldValue('job-notes'), 
+
+                // Section 1
+                printTime: getInputValue('print-time'),
+                materialWeight: getInputValue('material-weight'),
+                materialType: getTextFieldValue('material-type'),
+                machineRate: getInputValue('machine-rate'),
+                materialRate: getInputValue('material-rate'),
+
+                // Section 2
+                setupType: document.querySelector('input[name="setup-type"]:checked')?.value || 'simple',
+                simpleSetupFee: getInputValue('simple-setup-fee'),
+                setupHours: getInputValue('setup-hours'),
+                setupHourlyRate: getInputValue('setup-hourly-rate'),
+
+                // Section 3
+                postProcessType: document.querySelector('input[name="post-process-type"]:checked')?.value || 'basic',
+                ppFixedFee: getInputValue('pp-fixed-fee'),
+                ppHourlyRate: getInputValue('pp-hourly-rate'),
+                ppHours: getInputValue('pp-hours'),
+
+                // Section 4
+                dynamicFees: dynamicFees,
+                taxRate: getInputValue('tax-rate'),
+                taxEnabled: document.getElementById('tax-toggle').checked,
+                
+                // Firestore timestamp for sorting
+                createdAt: serverTimestamp() 
+            };
+        };
+        
+        /**
+         * Saves the current job data to Firestore.
+         */
+        const saveJob = async () => {
+            const jobData = collectJobData();
+            const project = jobData.projectName.trim() || 'Untitled Job';
+            // Use the current job ID as the document ID for easy reference/overwrite
+            const docRef = doc(getJobCollectionRef(), currentDocumentId);
+
+            document.getElementById('save-job-button').textContent = 'Saving...';
+            document.getElementById('save-job-button').disabled = true;
+
+            try {
+                // Use setDoc to save/overwrite the document
+                await setDoc(docRef, jobData);
+                console.log("Job saved with ID: ", currentDocumentId);
+                
+                // Show a success message briefly
+                const originalText = document.getElementById('save-job-button').textContent;
+                document.getElementById('save-job-button').textContent = `Saved: ${project}`;
+                setTimeout(() => {
+                    document.getElementById('save-job-button').textContent = originalText;
+                    document.getElementById('save-job-button').disabled = false;
+                }, 2000);
+
+            } catch (e) {
+                console.error("Error saving document: ", e);
+                // Handle error using the modal or a temporary message box
+                showModalMessage('Save Error', 'Could not save the job to the database. Check console for details.');
+                document.getElementById('save-job-button').textContent = 'Save Failed!';
+                setTimeout(() => {
+                     document.getElementById('save-job-button').textContent = 'Save Job';
+                     document.getElementById('save-job-button').disabled = false;
+                }, 3000);
+            }
+        };
+        
+        /**
+         * Populates all input fields with loaded job data.
+         */
+        const loadJob = (jobData) => {
+            if (!jobData) return;
+
+            // --- Update UI for current job ---
+            currentDocumentId = jobData.id;
+            
+            // --- Update Mode ---
+            toggleMode(jobData.mode === 'invoice');
+            document.getElementById('mode-toggle').checked = (jobData.mode === 'invoice');
+
+            // --- Update Simple Text/Number Inputs ---
+            const updateInput = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.value = value;
+            };
+            
+            updateInput('project-name', jobData.projectName || '');
+            updateInput('customer-name', jobData.customerName || '');
+            updateInput('customer-email', jobData.customerEmail || '');
+            updateInput('customer-phone', jobData.customerPhone || '');
+            updateInput('job-notes', jobData.jobNotes || ''); // NEW MEMO FIELD
+
+            updateInput('print-time', jobData.printTime || 0);
+            updateInput('material-weight', jobData.materialWeight || 0);
+            updateInput('material-type', jobData.materialType || '');
+            updateInput('machine-rate', jobData.machineRate || 0);
+            updateInput('material-rate', jobData.materialRate || 0);
+
+            updateInput('simple-setup-fee', jobData.simpleSetupFee || 0);
+            updateInput('setup-hours', jobData.setupHours || 0);
+            updateInput('setup-hourly-rate', jobData.setupHourlyRate || 0);
+
+            updateInput('pp-fixed-fee', jobData.ppFixedFee || 0);
+            updateInput('pp-hourly-rate', jobData.ppHourlyRate || 0);
+            updateInput('pp-hours', jobData.ppHours || 0);
+
+            updateInput('tax-rate', jobData.taxRate || 0);
+            document.getElementById('tax-toggle').checked = !!jobData.taxEnabled;
+            
+            // --- Update Radio Buttons (Setup) ---
+            document.querySelectorAll('input[name="setup-type"]').forEach(radio => {
+                radio.checked = radio.value === (jobData.setupType || 'simple');
+            });
+            updateSetupInputs(); // Trigger UI logic
+
+            // --- Update Radio Buttons (Post-Processing) ---
+            document.querySelectorAll('input[name="post-process-type"]').forEach(radio => {
+                radio.checked = radio.value === (jobData.postProcessType || 'basic');
+            });
+            updatePostProcessInputs(); // Trigger UI logic
+            
+            // --- Update Dynamic Fees ---
+            const feesContainer = document.getElementById('dynamic-fees-container');
+            feesContainer.innerHTML = ''; // Clear existing fees
+
+            if (jobData.dynamicFees && Array.isArray(jobData.dynamicFees)) {
+                jobData.dynamicFees.forEach(fee => {
+                    const newRow = createFeeRow(false); // Create row but don't append/re-calc yet
+                    newRow.querySelector('.dynamic-fee-name').value = fee.name;
+                    newRow.querySelector('.dynamic-fee-amount').value = fee.amount;
+                    newRow.querySelector('.dynamic-fee-type').value = fee.type;
+                    feesContainer.appendChild(newRow); // Append now
+                });
+            }
+            
+            // If no fees were loaded, ensure at least one empty row exists (optional)
+            if (feesContainer.children.length === 0) {
+                 createFeeRow(true, true); // Create and append an initial empty row
+            }
+
+
+            // Re-calculate and close modal
+            calculatePrice();
+            closeLoadJobsModal();
+            
+            // Show confirmation message
+            showModalMessage('Job Loaded', `Successfully loaded job: ${jobData.projectName || 'Untitled Job'}`);
+        };
+        
+        /**
+         * Sets up real-time listener for the current user's jobs.
+         */
+        const setupJobsListener = () => {
+             const jobsRef = getJobCollectionRef();
+             if (!jobsRef) return;
+             
+             // Simple query to order by creation time (newest first)
+             const q = query(jobsRef);
+             
+             onSnapshot(q, (snapshot) => {
+                 const jobs = [];
+                 snapshot.forEach(doc => {
+                     jobs.push({ id: doc.id, ...doc.data() });
+                 });
+                 
+                 renderSavedJobsList(jobs);
+                 console.log("Updated list of saved jobs received.");
+             }, (error) => {
+                 console.error("Error listening to jobs collection: ", error);
+                 document.getElementById('load-status').textContent = 'Error fetching jobs.';
+                 document.getElementById('load-status').classList.remove('hidden');
+             });
+        };
+        
+        /**
+         * Renders the list of saved jobs inside the modal.
+         */
+        const renderSavedJobsList = (jobs) => {
+            const list = document.getElementById('saved-jobs-list');
+            list.innerHTML = ''; // Clear list
+
+            if (jobs.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 italic text-sm">No jobs found yet. Save one to see it here!</p>';
+                return;
+            }
+
+            // Sort by timestamp newest first
+            jobs.sort((a, b) => b.timestamp - a.timestamp); 
+
+            jobs.forEach(job => {
+                const date = job.timestamp ? new Date(job.timestamp).toLocaleDateString() : 'N/A';
+                const projectName = job.projectName || 'Untitled Job';
+                const finalTotal = formatCurrency(job.finalTotal || 0);
+
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 cursor-pointer transition';
+                item.innerHTML = `
+                    <div>
+                        <p class="font-semibold text-gray-800">${projectName}</p>
+                        <p class="text-xs text-gray-500">${date} - ID: ${job.id}</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg font-bold text-primary">${finalTotal}</span>
+                        <button data-job-id="${job.id}" class="load-job-btn px-3 py-1 text-xs font-medium text-white bg-primary rounded-lg hover:bg-primary-dark">Load</button>
+                    </div>
+                `;
+                
+                // Add click listener to load the job
+                item.querySelector('.load-job-btn').addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent item click event if button is clicked
+                    loadJob(job);
+                });
+                // Also allow clicking the whole item to load
+                item.addEventListener('click', () => loadJob(job));
+
+                list.appendChild(item);
+            });
+        };
+        
+        // --- Modal/Message Box Functions ---
+        
+        // Re-use the load modal for simple messages
+        const showModalMessage = (title, message) => {
+             const modal = document.getElementById('load-jobs-modal');
+             const modalTitle = modal.querySelector('h3');
+             const modalContent = modal.querySelector('#saved-jobs-list');
+             
+             modalTitle.textContent = title;
+             modalContent.innerHTML = `<p class="text-gray-700">${message}</p><div class="flex justify-end pt-4"><button onclick="document.getElementById('load-jobs-modal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">Close</button></div>`;
+             modal.classList.remove('hidden');
+        };
+        
+        const openLoadJobsModal = () => {
+             // Reset to show the job list
+             document.getElementById('load-jobs-modal').querySelector('h3').textContent = 'Load Saved Jobs';
+             // The job list is automatically updated by the Firestore listener (setupJobsListener)
+             document.getElementById('load-jobs-modal').classList.remove('hidden');
+        };
+        
+        const closeLoadJobsModal = () => {
+             document.getElementById('load-jobs-modal').classList.add('hidden');
+             // Re-render the job list (it's always updated by the listener, but this ensures the main list view is displayed if a message was shown)
+             setupJobsListener(); 
+        };
+        
+        
+        // --- Core Calculator Functions (Moved from non-module script) ---
+
+        const getInputValue = (id) => {
+            const element = document.getElementById(id);
+            if (!element) return 0;
+            const value = parseFloat(element.value);
+            return isNaN(value) || value < 0 ? 0 : value;
+        };
+
+        const getTextFieldValue = (id) => {
+            const element = document.getElementById(id);
+            return element ? element.value.trim() : '';
+        };
+
+        const formatCurrency = (amount) => {
+            return '$' + amount.toFixed(2);
+        };
+
+        /**
+         * Formats a percentage rate to at least two decimal places.
+         */
+        const formatRate = (rate) => {
+             // Use toFixed(2) to ensure at least two decimal places
+             return parseFloat(rate).toFixed(2);
+        }
+
+        // --- Boilerplate Text ---
+        const boilerplate = {
+            estimate: `
+                <p class="mb-2"><strong>This document is an ESTIMATE ONLY.</strong> Best efforts are made to ensure this estimate is as accurate as possible, however, final costs may vary based on actual print time, material consumption, and post-processing labor.</p>
+                <p>The customer is responsible for the final, actual cost when the project is completed (upon delivery). This estimate is valid for 30 days from the date of issue.</p>
+            `,
+            invoice: `
+                <p class="mb-2"><strong>This is a FINAL INVOICE</strong> for services rendered as agreed upon. The amounts listed herein reflect the actual materials, machine time, and labor used for the completed 3D print project.</p>
+                <p>Payment is due upon receipt. Past due invoices may incur late fees. Thank you for your business!</p>
+            `
+        };
+
+        // Function to update the print-specific header data
+        const updatePrintData = () => {
+            // Read text fields
+            const projectName = getTextFieldValue('project-name');
+            const customerName = getTextFieldValue('customer-name');
+            const materialType = getTextFieldValue('material-type');
+            const customerEmail = getTextFieldValue('customer-email');
+            const customerPhone = getTextFieldValue('customer-phone');
+            const jobNotes = getTextFieldValue('job-notes'); // Read job notes
+            const dateString = new Date().toLocaleDateString('en-US');
+
+            // Update document details
+            document.getElementById('document-date').textContent = dateString;
+            document.getElementById('document-id').textContent = currentDocumentId;
+
+            // Update project and customer details for print header
+            document.getElementById('print-project-name').textContent = projectName || 'N/A';
+            document.getElementById('print-customer-name').textContent = customerName || 'N/A';
+            document.getElementById('print-material-type').textContent = materialType || 'N/A';
+            document.getElementById('print-customer-email').textContent = customerEmail || 'N/A';
+            document.getElementById('print-customer-phone').textContent = customerPhone || 'N/A';
+
+            // Update and display job notes
+            const notesContainer = document.getElementById('print-job-notes-container');
+            const notesText = document.getElementById('print-job-notes');
+
+            if (jobNotes) {
+                notesText.textContent = jobNotes;
+                notesContainer.style.display = 'block';
+            } else {
+                notesText.textContent = 'No specific job notes provided for this print.';
+                notesContainer.style.display = 'none';
+            }
+
+            // Set boilerplate text based on current mode
+            document.getElementById('boilerplate-text').innerHTML = boilerplate[currentMode];
+        };
+
+
+        // --- Core Calculation Logic ---
+
+        const calculatePrice = () => {
+            // Recalculate everything needed for saving the final total
+            
+            const breakdown = [];
+            let totalCost = 0;
+
+            // --- 1. Core Print Metrics ---
+            const printTime = getInputValue('print-time');
+            const machineRate = getInputValue('machine-rate');
+            const materialWeight = getInputValue('material-weight');
+            const materialRate = getInputValue('material-rate');
+
+            // Machine Time Cost
+            const machineCost = printTime * machineRate;
+            totalCost += machineCost;
+            breakdown.push({
+                name: `1. Machine Time (${printTime.toFixed(2)} hrs @ ${formatCurrency(machineRate)}/hr)`,
+                cost: machineCost
+            });
+
+            // Material Cost
+            const materialCost = materialWeight * materialRate;
+            totalCost += materialCost;
+            breakdown.push({
+                name: `2. Material Cost (${materialWeight.toFixed(1)}g @ ${formatCurrency(materialRate)}/g)`,
+                cost: materialCost
+            });
+
+            // --- 2. Setup/Prep Fee ---
+            const selectedSetup = document.querySelector('input[name="setup-type"]:checked')?.value || 'simple';
+            let setupCost = 0;
+            let setupDescription = '';
+
+            if (selectedSetup === 'simple') {
+                setupCost = getInputValue('simple-setup-fee');
+                setupDescription = '3. Setup Fee (Simple Fixed)';
+            } else { // complex
+                const setupHours = getInputValue('setup-hours');
+                const setupHourlyRate = getInputValue('setup-hourly-rate');
+                setupCost = setupHours * setupHourlyRate;
+                setupDescription = `3. Setup Fee (Complex: ${setupHours.toFixed(1)} hrs @ ${formatCurrency(setupHourlyRate)}/hr)`;
+            }
+            totalCost += setupCost;
+            breakdown.push({
+                name: setupDescription,
+                cost: setupCost
+            });
+
+            // --- 3. Post-Processing Fee ---
+            const selectedPP = document.querySelector('input[name="post-process-type"]:checked')?.value || 'basic';
+            let ppCost = 0;
+            let ppDescription = '';
+
+            if (selectedPP === 'basic') {
+                ppCost = 0;
+                ppDescription = '4. Post-Processing (Basic Included)';
+            } else if (selectedPP === 'advanced_fixed') {
+                ppCost = getInputValue('pp-fixed-fee');
+                ppDescription = '4. Post-Processing (Advanced Fixed Fee)';
+            } else { // advanced_hourly
+                const ppHourlyRate = getInputValue('pp-hourly-rate');
+                const ppHours = getInputValue('pp-hours');
+                ppCost = ppHourlyRate * ppHours;
+                ppDescription = `4. Post-Processing (Hourly: ${ppHours.toFixed(1)} hrs @ ${formatCurrency(ppHourlyRate)}/hr)`;
+            }
+            totalCost += ppCost;
+            breakdown.push({
+                name: ppDescription,
+                cost: ppCost
+            });
+
+            // Subtotal before Ad-hoc Fees and Tax
+            let subtotalBeforeFees = machineCost + materialCost + setupCost + ppCost;
+
+            // --- 4. Ad-Hoc Fees ---
+            const feeRows = document.querySelectorAll('#dynamic-fees-container .dynamic-fee-row');
+            let totalFeeCost = 0;
+
+            feeRows.forEach((row, index) => {
+                const nameInput = row.querySelector('.dynamic-fee-name');
+                const amountInput = row.querySelector('.dynamic-fee-amount');
+                const typeSelect = row.querySelector('.dynamic-fee-type');
+
+                const feeName = nameInput.value.trim() || `5. Ad-hoc Fee ${index + 1}`;
+                const feeAmount = parseFloat(amountInput.value);
+                const feeType = typeSelect.value;
+
+                if (isNaN(feeAmount) || feeAmount <= 0) return;
+
+                let feeCost = 0;
+                let displayValue = '';
+
+                if (feeType === 'fixed') {
+                    feeCost = feeAmount;
+                    displayValue = formatCurrency(feeAmount);
+                } else { // percent
+                    // Calculate percentage based on subtotal BEFORE fees
+                    feeCost = subtotalBeforeFees * (feeAmount / 100);
+                    // Use formatRate(feeAmount) to ensure 2 decimal precision for the displayed rate
+                    displayValue = `${formatRate(feeAmount)}% on Subtotal`;
+                }
+
+                totalFeeCost += feeCost;
+                totalCost += feeCost;
+
+                breakdown.push({
+                    name: `${feeName} (${displayValue})`,
+                    cost: feeCost
+                });
+            });
+
+            // --- 5. Sales Tax ---
+            const taxToggle = document.getElementById('tax-toggle').checked;
+            const taxRate = getInputValue('tax-rate');
+            let taxCost = 0;
+
+            let taxableBase = subtotalBeforeFees + totalFeeCost; // Tax is applied to the subtotal including ad-hoc fees
+
+            if (taxToggle && taxRate > 0) {
+                taxCost = taxableBase * (taxRate / 100);
+                // Use formatRate(taxRate) to ensure 2 decimal precision for the displayed rate
+                breakdown.push({
+                    name: `6. Sales Tax (${formatRate(taxRate)}% on ${formatCurrency(taxableBase)})`,
+                    cost: taxCost
+                });
+                totalCost += taxCost;
+            }
+
+
+            // --- Update Display ---
+
+            // Update total cost displays
+            document.getElementById('total-price-display').textContent = formatCurrency(totalCost);
+            document.getElementById('total-price-summary').textContent = formatCurrency(totalCost);
+
+            // Update breakdown list
+            const breakdownList = document.getElementById('breakdown-list');
+            breakdownList.innerHTML = ''; // Clear existing items
+
+            breakdown.forEach((item) => {
+                // Ensure cost is not zero before displaying, especially for basic post-processing
+                if (item.cost > 0 || item.name.includes('(Basic Included)')) {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = `flex justify-between items-center text-gray-700 border-b border-dashed border-gray-200 pb-2`;
+                    itemDiv.innerHTML = `
+                        <span class="font-medium">${item.name}</span>
+                        <span class="font-bold text-gray-800">${formatCurrency(item.cost)}</span>
+                    `;
+                    breakdownList.appendChild(itemDiv);
+                }
+            });
+
+            // Update print data on every calculation
+            updatePrintData();
+            updateTaxToggleAppearance(); // Ensure tax toggle color is correct
+        };
+
+        const toggleMode = (isInvoice) => {
+            const body = document.body;
+            const mainTitle = document.getElementById('main-app-title');
+            const headerTitle = document.querySelector('.header-title');
+            const modelTag = document.getElementById('model-tag');
+            const printTitle = document.getElementById('print-title');
+
+            if (isInvoice) {
+                currentMode = 'invoice';
+                body.classList.add('invoice-mode');
+                mainTitle.textContent = '3D Print Final Invoice Generator';
+                headerTitle.textContent = 'Final Charges Breakdown';
+                modelTag.textContent = 'FINAL INVOICE';
+                printTitle.textContent = 'FINAL INVOICE';
+            } else {
+                currentMode = 'estimate';
+                body.classList.remove('invoice-mode');
+                mainTitle.textContent = '3D Print Price Estimator';
+                headerTitle.textContent = 'Cost Breakdown';
+                modelTag.textContent = 'HYBRID MODEL';
+                printTitle.textContent = 'PRICE ESTIMATE';
+            }
+
+            calculatePrice(); // Recalculate and update print/boilerplate data
+        };
+
+        // --- UI Interaction Logic (Show/Hide Fields) ---
+        const updateSetupInputs = () => {
+            const selectedSetup = document.querySelector('input[name="setup-type"]:checked')?.value || 'simple';
+            if (selectedSetup === 'simple') {
+                simpleSetupInputs.style.display = 'block';
+                complexSetupInputs.style.display = 'none';
+            } else {
+                simpleSetupInputs.style.display = 'none';
+                complexSetupInputs.style.display = 'block';
+            }
+            calculatePrice();
+        };
+
+        const updatePostProcessInputs = () => {
+            const selectedPP = document.querySelector('input[name="post-process-type"]:checked')?.value || 'basic';
+
+            // Reset visibility
+            advancedPostProcessInputs.style.display = 'none';
+            // The next line ensures only the fixed input is shown if that mode is selected
+            document.getElementById('pp-fixed-input').parentElement.style.display = 'none';
+            ppHourlyInputs.style.display = 'none';
+
+            if (selectedPP === 'advanced_fixed') {
+                advancedPostProcessInputs.style.display = 'block';
+                document.getElementById('pp-fixed-input').parentElement.style.display = 'block';
+            } else if (selectedPP === 'advanced_hourly') {
+                advancedPostProcessInputs.style.display = 'block';
+                ppHourlyInputs.style.display = 'flex';
+            }
+            calculatePrice();
+        };
+
+        /**
+         * Creates a new fee row element.
+         * @param {boolean} addListeners - Whether to add event listeners immediately.
+         * @param {boolean} isEmptyRow - If true, sets value to 0.00 and name to empty.
+         * @returns {HTMLElement} The created div element.
+         */
+        const createFeeRow = (addListeners = true, isEmptyRow = false) => {
+            const newRow = document.createElement('div');
+            newRow.className = "flex gap-2 items-center dynamic-fee-row";
+            newRow.innerHTML = `
+                <input type="text" placeholder="Fee Name" value="${isEmptyRow ? '' : 'Shipping'}" class="flex-grow rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary text-sm dynamic-fee-name">
+                <input type="number" placeholder="Value" value="${isEmptyRow ? '0.00' : '15.00'}" step="0.01" min="0" class="w-24 rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary text-sm dynamic-fee-amount">
+                <select class="rounded-lg border-gray-300 shadow-sm p-2 text-sm dynamic-fee-type">
+                    <option value="fixed" selected>Fixed ($)</option>
+                    <option value="percent">%</option>
+                </select>
+                <button type="button" class="text-red-500 hover:text-red-700 p-1 remove-fee-btn" title="Remove Fee">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.72-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            `;
+            
+            if (addListeners) {
+                 // Add event listeners to the new elements
+                const newInputs = newRow.querySelectorAll('input, select');
+                newInputs.forEach(input => input.addEventListener('input', calculatePrice));
+                newRow.querySelector('.remove-fee-btn').addEventListener('click', (e) => removeFeeRow(e.currentTarget));
+            }
+
+            return newRow;
+        };
+        
+        // Wrapper for adding and calculating
+        const addFeeRow = () => {
+             const container = document.getElementById('dynamic-fees-container');
+             const newRow = createFeeRow(true, false); // Create with default values and listeners
+             container.appendChild(newRow);
+             calculatePrice(); 
+        }
+
+        const removeFeeRow = (buttonElement) => {
+            const row = buttonElement.closest('.dynamic-fee-row');
+            if (row) {
+                row.remove();
+                calculatePrice(); // Recalculate after removing a row
+            }
+        };
+
+        const updateTaxToggleAppearance = () => {
+            const taxToggle = document.getElementById('tax-toggle');
+            const taxToggleDiv = document.querySelector('#tax-toggle ~ .block');
+
+            if (taxToggle.checked) {
+                if (currentMode === 'invoice') {
+                    taxToggleDiv.style.backgroundColor = 'var(--secondary-color)';
+                } else {
+                    taxToggleDiv.style.backgroundColor = 'var(--primary-color)';
+                }
+            } else {
+                taxToggleDiv.style.backgroundColor = '#6b7280'; // Gray when off
+            }
+            calculatePrice();
+        };
+
+
+        // Element references
+        const setupTypeRadios = document.querySelectorAll('input[name="setup-type"]');
+        const complexSetupInputs = document.getElementById('complex-setup-inputs');
+        const simpleSetupInputs = document.getElementById('simple-setup-inputs');
+
+        const postProcessTypeRadios = document.querySelectorAll('input[name="post-process-type"]');
+        const advancedPostProcessInputs = document.getElementById('advanced-post-process-inputs');
+        const ppHourlyInputs = document.getElementById('pp-hourly-inputs');
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const modeToggle = document.getElementById('mode-toggle');
+            const printButton = document.getElementById('print-button');
+            const addFeeButton = document.getElementById('add-fee-button');
+            const taxToggle = document.getElementById('tax-toggle');
+            const taxRateInput = document.getElementById('tax-rate');
+            
+            // Firebase Button Listeners
+            document.getElementById('save-job-button').addEventListener('click', saveJob);
+            document.getElementById('load-jobs-button').addEventListener('click', openLoadJobsModal);
+            document.getElementById('close-load-jobs-modal').addEventListener('click', closeLoadJobsModal);
+
+
+            // --- Event Listeners ---
+
+            // Listen to all INPUTS for changes to trigger real-time calculation/print update
+            const inputs = document.querySelectorAll('input:not([type="radio"]), select, textarea');
+            inputs.forEach(input => {
+                input.addEventListener('input', calculatePrice);
+                input.addEventListener('change', calculatePrice);
+            });
+
+            // Logic Listeners
+            setupTypeRadios.forEach(radio => radio.addEventListener('change', updateSetupInputs));
+            postProcessTypeRadios.forEach(radio => radio.addEventListener('change', updatePostProcessInputs));
+
+            // Fee and Tax Listeners
+            addFeeButton.addEventListener('click', addFeeRow);
+            taxToggle.addEventListener('change', updateTaxToggleAppearance);
+            taxRateInput.addEventListener('input', updateTaxToggleAppearance); // Recalculate when rate changes
+
+            // Remove fee button listener for the initial row
+            document.querySelector('#dynamic-fees-container .remove-fee-btn').addEventListener('click', (e) => removeFeeRow(e.currentTarget));
+
+            // Toggle Mode Listener
+            modeToggle.addEventListener('change', (e) => toggleMode(e.target.checked));
+
+            // Print Button Listener
+            printButton.addEventListener('click', () => {
+                // Ensure print data is up to date before printing
+                updatePrintData();
+                window.print();
+            });
+
+
+            // Run initial updates and calculation on load
+            updateSetupInputs();
+            updatePostProcessInputs();
+            updateTaxToggleAppearance(); // Initialize tax toggle color
+            toggleMode(false); // Start in estimate mode
+        });
+    </script>
+</body>
+</html>
