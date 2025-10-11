@@ -342,7 +342,7 @@
             <!-- Machine Rate Input -->
             <div class="mb-4">
               <label for="machine-rate" class="block text-sm font-medium text-gray-700">Machine Time Rate (Rate per Hour
-                - \$)</label>
+                - $)</label>
               <input type="number" id="machine-rate" value="2.00" step="0.01" min="0"
                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition"
                 placeholder="e.g., 2.00 (\$1 - \$3 suggested)">
@@ -350,7 +350,7 @@
             <!-- Material Rate Input -->
             <div>
               <label for="material-rate" class="block text-sm font-medium text-gray-700">Material Cost Rate (Rate per
-                Gram - \$)</label>
+                Gram - $)</label>
               <input type="number" id="material-rate" value="0.10" step="0.001" min="0"
                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-primary focus:ring-primary transition"
                 placeholder="e.g., 0.10 (\$0.05 - \$0.15 suggested)">
@@ -365,7 +365,7 @@
               <label class="inline-flex items-center">
                 <input type="radio" name="setup-type" value="simple" checked
                   class="form-radio h-4 w-4 text-primary focus:ring-primary rounded-full">
-                <span class="ml-2 text-gray-700 font-medium">Simple / Print-Ready (\$3 - \$10 Fixed)</span>
+                <span class="ml-2 text-gray-700 font-medium">Simple / Print-Ready ($3 - $10 Fixed)</span>
               </label>
               <label class="inline-flex items-center">
                 <input type="radio" name="setup-type" value="complex"
@@ -387,7 +387,7 @@
                 </div>
                 <div class="w-1/2">
                   <label for="setup-hourly-rate" class="block text-xs font-medium text-gray-700">Hourly Rate
-                    (\$)</label>
+                    ($)</label>
                   <input type="number" id="setup-hourly-rate" value="25.00" step="0.01" min="0"
                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary transition"
                     placeholder="e.g., 25.00">
@@ -398,7 +398,7 @@
             <div id="simple-setup-inputs" class="bg-surface p-4 rounded-lg border border-gray-200">
               <div class="w-full">
                 <label for="simple-setup-fee" class="block text-xs font-medium text-gray-700">Fixed Simple Setup Fee
-                  (\$)</label>
+                  ($)</label>
                 <input type="number" id="simple-setup-fee" value="5.00" step="0.01" min="0"
                   class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary transition"
                   placeholder="e.g., 5.00">
@@ -414,17 +414,17 @@
               <label class="inline-flex items-center">
                 <input type="radio" name="post-process-type" value="basic" checked
                   class="form-radio h-4 w-4 text-primary focus:ring-primary rounded-full">
-                <span class="ml-2 text-gray-700 font-medium">Basic Support Removal (Included/\$0)</span>
+                <span class="ml-2 text-gray-700 font-medium">Basic Support Removal (Included $0)</span>
               </label>
               <label class="inline-flex items-center">
                 <input type="radio" name="post-process-type" value="advanced_fixed"
                   class="form-radio h-4 w-4 text-primary focus:ring-primary rounded-full">
-                <span class="ml-2 text-gray-700 font-medium">Advanced Fixed Fee (\$5 - \$20)</span>
+                <span class="ml-2 text-gray-700 font-medium">Advanced Fixed Fee ($5 - $20)</span>
               </label>
               <label class="inline-flex items-center">
                 <input type="radio" name="post-process-type" value="advanced_hourly"
                   class="form-radio h-4 w-4 text-primary focus:ring-primary rounded-full">
-                <span class="ml-2 text-gray-700 font-medium">Advanced Hourly Rate (\$15 - \$25/hr)</span>
+                <span class="ml-2 text-gray-700 font-medium">Advanced Hourly Rate ($15 - $25/hr)</span>
               </label>
             </div>
             <!-- Advanced Post-Processing Inputs (Hidden by default) -->
@@ -434,7 +434,7 @@
               <div class="flex gap-4">
                 <!-- Fixed Fee input for the advanced_fixed option -->
                 <div id="pp-fixed-input" class="w-1/2">
-                  <label for="pp-fixed-fee" class="block text-xs font-medium text-gray-700">Fixed Fee (\$)</label>
+                  <label for="pp-fixed-fee" class="block text-xs font-medium text-gray-700">Fixed Fee ($)</label>
                   <input type="number" id="pp-fixed-fee" value="10.00" step="0.01" min="0"
                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary transition"
                     placeholder="e.g., 10.00">
@@ -442,7 +442,7 @@
                 <!-- Hourly Rate inputs for the advanced_hourly option -->
                 <div id="pp-hourly-inputs" class="w-full flex gap-4" style="display: none;">
                   <div class="w-1/2">
-                    <label for="pp-hourly-rate" class="block text-xs font-medium text-gray-700">Hourly Rate (\$)</label>
+                    <label for="pp-hourly-rate" class="block text-xs font-medium text-gray-700">Hourly Rate ($)</label>
                     <input type="number" id="pp-hourly-rate" value="20.00" step="0.01" min="0"
                       class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-primary focus:ring-primary transition"
                       placeholder="e.g., 20.00">
@@ -569,9 +569,9 @@
             <div class="bg-card p-6 rounded-xl shadow-lg border-2 border-primary-dark total-card">
               <p class="text-sm font-medium text-gray-500 mb-1">Total Amount</p>
               <div class="flex items-center justify-between">
-                <h2 class="text-4xl font-extrabold text-gray-900" id="total-price-display">\$0.00</h2>
-                <span id="model-tag"
-                  class="text-xs font-semibold text-primary px-3 py-1 bg-primary/10 rounded-full">HYBRID MODEL</span>
+                <h2 class="text-4xl font-extrabold text-gray-900" id="total-price-display">$0.00</h2>
+                <!-- <span id="model-tag"
+                  class="text-xs font-semibold text-primary px-3 py-1 bg-primary/10 rounded-full">HYBRID MODEL</span> -->
               </div>
             </div>
             <!-- Breakdown Card (Results) -->
@@ -584,7 +584,7 @@
               <div class="border-t border-gray-200 mt-4 pt-4">
                 <div class="flex justify-between items-center text-lg font-extrabold text-gray-900">
                   <span>TOTAL AMOUNT</span>
-                  <span id="total-price-summary">\$0.00</span>
+                  <span id="total-price-summary">$0.00</span>
                 </div>
               </div>
             </div>
@@ -644,10 +644,20 @@
       let currentDocumentId = crypto.randomUUID().substring(0, 8).toUpperCase();
       let db, auth;
       let userId;
-      // --- Firebase/Auth Initialization (MANDATORY CANVAS GLOBALS) ---
-      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-      const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-      const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+      
+      // --- Firebase Configuration (Hardcoded for GitHub Pages) ---
+      const appId = '3dprint-estimator'; // Firebase App Name
+      const firebaseConfig = {
+        apiKey: "AIzaSyBA38eH5sF8NCulmLcOx9D6X9GlmQpQnDo",
+        authDomain: "dprint-estimator.firebaseapp.com",
+        projectId: "dprint-estimator",
+        storageBucket: "dprint-estimator.firebasestorage.app",
+        messagingSenderId: "682823690959",
+        appId: "1:682823690959:web:305fa6cb7dfe843cf865ba",
+        measurementId: "G-8MENQJLWLV"
+      };
+      const authToken = null; // not used when hardcoding
+
       if (firebaseConfig) {
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
