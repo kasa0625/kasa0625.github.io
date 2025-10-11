@@ -1243,7 +1243,7 @@
         } else {
           taxToggleDiv.style.backgroundColor = '#6b7280'; // Gray when off
         }
-        calculatePrice();
+        //calculatePrice(); //This was causing an infinite loop and blew up the stack
       };
       // Element references
       const setupTypeRadios = document.querySelectorAll('input[name="setup-type"]');
@@ -1296,3 +1296,4 @@
   </body>
 
 </html>
+
