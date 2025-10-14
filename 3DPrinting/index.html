@@ -701,11 +701,11 @@
               if (confirm(`Are you sure you want to delete job "${projectName}" (ID: ${jobId})?`)) {
                   await deleteDoc(jobRef);
                   console.log("Job successfully deleted: ", jobId);
-                  showModalMessage('Job Deleted', `Successfully deleted job: ${projectName}`);
+                  showNotification('Job Deleted', `Successfully deleted job: ${projectName}`, 'success');
               }
           } catch (e) {
               console.error("Error deleting document: ", e);
-              showModalMessage('Deletion Error', 'Could not delete the job. Check console for details.');
+              showNotification('Deletion Error', 'Could not delete the job. Check console for details.', 'error');
           }
       };
       /**
@@ -778,6 +778,7 @@
           await setDoc(docRef, jobData);
           console.log("Job saved with ID: ", currentDocumentId);
           // Show a success message briefly
+          showNotification('Save Success', `Job "${project}" saved successfully!`, 'success');
           const originalText = document.getElementById('save-job-button').textContent;
           document.getElementById('save-job-button').textContent = `Saved: ${project}`;
           setTimeout(() => {
@@ -787,7 +788,7 @@
         } catch (e) {
           console.error("Error saving document: ", e);
           // Handle error using the modal or a temporary message box
-          showModalMessage('Save Error', 'Could not save the job to the database. Check console for details.');
+          showNotification('Save Error', 'Could not save the job. Check console for details.', 'error');
           document.getElementById('save-job-button').textContent = 'Save Failed!';
           setTimeout(() => {
             document.getElementById('save-job-button').textContent = 'Save Job';
@@ -858,7 +859,7 @@
         calculatePrice();
         closeLoadJobsModal();
         // Show confirmation message
-        showModalMessage('Job Loaded', `Successfully loaded job: ${jobData.projectName || 'Untitled Job'}`);
+        showNotification('Load Success', `Successfully loaded job: ${job.projectName}`, 'success');
       };
       /**
        * Sets up real-time listener for the current user's jobs.
@@ -938,18 +939,68 @@ const renderSavedJobsList = (jobs) => {
     });
 };      // --- Modal/Message Box Functions ---
       // Re-use the load modal for simple messages
-      const showModalMessage = (title, message) => {
-        const modal = document.getElementById('load-jobs-modal');
-        const modalTitle = modal.querySelector('h3');
-        const modalContent = modal.querySelector('#saved-jobs-list');
-        modalTitle.textContent = title;
-        modalContent.innerHTML = `
-        <p class="text-gray-700">${message}</p>
-        <div class="flex justify-end pt-4">
-          <button onclick="document.getElementById('load-jobs-modal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">Close</button>
-        </div>`;
-        modal.classList.remove('hidden');
-      };
+      // const showModalMessage = (title, message) => {
+      //   const modal = document.getElementById('load-jobs-modal');
+      //   const modalTitle = modal.querySelector('h3');
+      //   const modalContent = modal.querySelector('#saved-jobs-list');
+      //   modalTitle.textContent = title;
+      //   modalContent.innerHTML = `
+      //   <p class="text-gray-700">${message}</p>
+      //   <div class="flex justify-end pt-4">
+      //     <button onclick="document.getElementById('load-jobs-modal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">Close</button>
+      //   </div>`;
+      //   modal.classList.remove('hidden');
+      // };
+      // Function to display a toast notification
+const showNotification = (title, message, type = 'success') => {
+    const toast = document.getElementById('notification-toast');
+    const titleEl = document.getElementById('toast-title');
+    const messageEl = document.getElementById('toast-message');
+    const iconContainer = document.getElementById('toast-icon-container');
+
+    // 1. Reset Classes & Content
+    toast.className = 'fixed bottom-6 right-6 p-4 rounded-lg shadow-xl z-50 transition-all duration-300 transform translate-x-full opacity-0 max-w-sm';
+    iconContainer.innerHTML = ''; // Clear previous icon
+
+    let bgColor, titleColor, iconHtml;
+
+    if (type === 'error') {
+        bgColor = 'bg-red-50';
+        titleColor = 'text-red-700';
+        // X-circle Icon
+        iconHtml = `<svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>`;
+    } else { // Default to 'success'
+        bgColor = 'bg-green-50';
+        titleColor = 'text-green-700';
+        // Check-circle Icon
+        iconHtml = `<svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>`;
+    }
+
+    // 2. Set Content and Appearance
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    iconContainer.innerHTML = iconHtml;
+    
+    // Add dynamic classes
+    toast.classList.add(bgColor);
+    titleEl.classList.add(titleColor);
+
+    // 3. Show Toast (Remove full-translate and set opacity)
+    setTimeout(() => {
+        toast.classList.remove('translate-x-full', 'opacity-0');
+        toast.classList.add('translate-x-0', 'opacity-100');
+    }, 10); // Small delay ensures transition triggers
+
+    // 4. Hide Toast after 4 seconds
+    setTimeout(() => {
+        toast.classList.remove('translate-x-0', 'opacity-100');
+        toast.classList.add('translate-x-full', 'opacity-0');
+    }, 4000);
+};
       const openLoadJobsModal = () => {
         // Reset to show the job list
         document.getElementById('load-jobs-modal').querySelector('h3').textContent = 'Load Saved Jobs';
@@ -1324,6 +1375,16 @@ const renderSavedJobsList = (jobs) => {
         toggleMode(false); // Start in estimate mode
       });
     </script>
+    <div id="notification-toast" class="fixed bottom-6 right-6 p-4 rounded-lg shadow-xl z-50 transition-all duration-300 transform translate-x-full opacity-0 max-w-sm" role="alert">
+    <div class="flex items-start">
+        <div id="toast-icon-container" class="flex-shrink-0 mr-3 mt-0.5">
+            </div>
+        <div>
+            <p id="toast-title" class="text-sm font-semibold"></p>
+            <p id="toast-message" class="text-sm mt-1"></p>
+        </div>
+    </div>
+</div>
   </body>
 
 </html>
