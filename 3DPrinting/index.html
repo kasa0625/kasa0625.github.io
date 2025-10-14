@@ -632,7 +632,8 @@
         onSnapshot,
         collection,
         query,
-        serverTimestamp
+        serverTimestamp,
+        deleteDoc
       } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
       import {
         setLogLevel
@@ -690,6 +691,22 @@
         if (!userId || !db) return null;
         // Private data path: /artifacts/{appId}/users/{userId}/jobs
         return collection(db, `artifacts/${appId}/users/${userId}/jobs`);
+      };
+      /**
+       * Deletes a job document from Firestore.
+       */
+      const deleteJob = async (jobId, projectName) => {
+          const jobRef = doc(getJobCollectionRef(), jobId);
+          try {
+              if (confirm(`Are you sure you want to delete job "${projectName}" (ID: ${jobId})?`)) {
+                  await deleteDoc(jobRef);
+                  console.log("Job successfully deleted: ", jobId);
+                  showModalMessage('Job Deleted', `Successfully deleted job: ${projectName}`);
+              }
+          } catch (e) {
+              console.error("Error deleting document: ", e);
+              showModalMessage('Deletion Error', 'Could not delete the job. Check console for details.');
+          }
       };
       /**
        * Collects all current input data into a serializable object.
@@ -867,45 +884,59 @@
           document.getElementById('load-status').classList.remove('hidden');
         });
       };
-      /**
-       * Renders the list of saved jobs inside the modal.
-       */
-      const renderSavedJobsList = (jobs) => {
-        const list = document.getElementById('saved-jobs-list');
-        list.innerHTML = ''; // Clear list
-        if (jobs.length === 0) {
-          list.innerHTML = ' < p class = "text-gray-500 italic text-sm" > No jobs found yet.Save one to see it here! < /p>';
-          return;
-        }
-        // Sort by timestamp newest first
-        jobs.sort((a, b) => b.timestamp - a.timestamp);
-        jobs.forEach(job => {
-          const date = job.timestamp ? new Date(job.timestamp).toLocaleDateString() : 'N/A';
-          const projectName = job.projectName || 'Untitled Job';
-          const finalTotal = formatCurrency(job.finalTotal || 0);
-          const item = document.createElement('div');
-          item.className = 'flex justify-between items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 cursor-pointer transition';
-          item.innerHTML = `
-          <div>
-            <p class="font-semibold text-gray-800">${projectName}</p>
-            <p class="text-xs text-gray-500">${date} - ID: ${job.id}</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="text-lg font-bold text-primary">${finalTotal}</span>
-            <button data-job-id="${job.id}" class="load-job-btn px-3 py-1 text-xs font-medium text-white bg-primary rounded-lg hover:bg-primary-dark">Load</button>
-          </div>
-                `;
-          // Add click listener to load the job
-          item.querySelector('.load-job-btn').addEventListener('click', (e) => {
+/**
+ * Renders the list of saved jobs inside the modal.
+ */
+const renderSavedJobsList = (jobs) => {
+    const list = document.getElementById('saved-jobs-list');
+    list.innerHTML = ''; // Clear list
+    if (jobs.length === 0) {
+        list.innerHTML = '<p class="text-gray-500 italic text-sm">No jobs found yet. Save one to see it here!</p>';
+        return;
+    }
+
+    // Sort by timestamp newest first
+    jobs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); // Add fallback for robustness
+
+    jobs.forEach(job => {
+        const date = job.timestamp ? new Date(job.timestamp).toLocaleDateString() : 'N/A';
+        const projectName = job.projectName || 'Untitled Job';
+        const finalTotal = formatCurrency(job.finalTotal || 0);
+
+        const item = document.createElement('div');
+        item.className = 'flex justify-between items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 cursor-pointer transition';
+        item.innerHTML = `
+        <div>
+          <p class="font-semibold text-gray-800">${projectName}</p>
+          <p class="text-xs text-gray-500">${date} - ID: ${job.id}</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-lg font-bold text-primary">${finalTotal}</span>
+          <button data-job-id="${job.id}" class="load-job-btn px-3 py-1 text-xs font-medium text-white bg-primary rounded-lg hover:bg-primary-dark">Load</button>
+          <button data-job-id="${job.id}" data-project-name="${projectName}" class="delete-job-btn p-1 text-xs font-medium text-red-500 hover:text-red-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.72-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+              `;
+        // Add click listener to load the job
+        item.querySelector('.load-job-btn').addEventListener('click', (e) => {
             e.stopPropagation(); // Prevent item click event if button is clicked
             loadJob(job);
-          });
-          // Also allow clicking the whole item to load
-          item.addEventListener('click', () => loadJob(job));
-          list.appendChild(item);
         });
-      };
-      // --- Modal/Message Box Functions ---
+        // Add click listener to delete the job
+        item.querySelector('.delete-job-btn').addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent item click event if button is clicked
+            const jobIdToDelete = e.currentTarget.getAttribute('data-job-id');
+            const projectNameToDelete = e.currentTarget.getAttribute('data-project-name');
+            deleteJob(jobIdToDelete, projectNameToDelete);
+        });
+        // Also allow clicking the whole item to load
+        item.addEventListener('click', () => loadJob(job));
+        list.appendChild(item);
+    });
+};      // --- Modal/Message Box Functions ---
       // Re-use the load modal for simple messages
       const showModalMessage = (title, message) => {
         const modal = document.getElementById('load-jobs-modal');
@@ -1296,4 +1327,3 @@
   </body>
 
 </html>
-
