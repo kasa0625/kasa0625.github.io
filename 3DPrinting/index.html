@@ -244,7 +244,7 @@
             <span class="text-sm font-medium text-gray-700 ml-4">Final Invoice</span>
           </div>
           <!-- Print Button -->
-          <button id="print-button"
+          <button id="print-button" type="button"
             class="px-6 py-3 bg-gray-600 text-white font-bold rounded-xl shadow-md hover:bg-gray-700 transition duration-200 flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd"
@@ -1364,8 +1364,25 @@ const showNotification = (title, message, type = 'success') => {
         modeToggle.addEventListener('change', (e) => toggleMode(e.target.checked));
         // Print Button Listener
         printButton.addEventListener('click', () => {
-          // Ensure print data is up to date before printing
-          updatePrintData();
+          // 1. Get the latest checkbox state
+          const modeToggle = document.getElementById('mode-toggle');
+          const isInvoiceMode = modeToggle.checked;
+          
+          // 2. Get the print title element (assumed to be 'print-title')
+          const printTitle = document.getElementById('print-title');
+
+          // 3. **DIRECTLY SET THE TITLE** based on the checkbox state.
+          //    This bypasses the global 'currentMode' to ensure accuracy.
+          if (isInvoiceMode) {
+              printTitle.textContent = 'FINAL INVOICE';
+          } else {
+              printTitle.textContent = 'PRICE ESTIMATE';
+          }
+          
+          // 4. Run updatePrintData() for other print-specific content (totals, etc.)
+          updatePrintData(); 
+          
+          // 5. Trigger the print dialog
           window.print();
         });
         // Run initial updates and calculation on load
